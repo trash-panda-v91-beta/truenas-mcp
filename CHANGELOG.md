@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.3...v0.1.4) (2026-08-20)
+
+
+### Bug Fixes
+
+* correct FastMCP tool client access (no spurious ctx param) ([#9](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/9)) ([c43b087](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/c43b0871f84e459755d157ee17928a0058d40845))
+
 ## [0.1.3](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.2...v0.1.3) (2026-08-20)
 
 
