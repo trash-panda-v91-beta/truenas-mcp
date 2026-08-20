@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.2...v0.1.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* allow TRUENAS_VERIFY_SSL=false over wss for self-signed certs ([#7](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/7)) ([6cffe36](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/6cffe36187c3cfb23ad6bce030afa1a264277123))
+
 ## [0.1.2](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.1...v0.1.2) (2026-08-20)
 
 
