@@ -2,7 +2,7 @@
 
 import logging
 
-from pydantic import model_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,33 +11,34 @@ class Config(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    truenas_base_url: str | None = None
+    truenas_uri: str | None = None
     truenas_api_key: str | None = None
+    truenas_verify_ssl: bool = True
     log_level: str = "INFO"
-    # Opt into plaintext http base URLs (e.g. cluster-internal .svc.cluster.local).
-    # Default stays https-only so the API key is never sent in clear.
-    allow_insecure_http: bool = False
 
-    @model_validator(mode="after")
-    def _validate(self) -> Config:
-        base = self.truenas_base_url or ""
-        errors: list[str] = []
-        if not base:
-            errors.append(
-                "TRUENAS_BASE_URL environment variable is required. Please set it to your TrueNAS instance URL."
-            )
-        elif not base.startswith("https://") and not self.allow_insecure_http:
-            errors.append(
-                f"TRUENAS_BASE_URL must use HTTPS for security (or set ALLOW_INSECURE_HTTP=true). Got: {base[:50]}"
-            )
+    @field_validator("truenas_uri")
+    @classmethod
+    def _validate_uri(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if v.startswith("wss://") or v.startswith("ws://"):
+            return v.rstrip("/")
+        raise ValueError("TRUENAS_URI must be a ws:// or wss:// websocket URL, e.g. wss://truenas/api/current")
+
+    def _errors(self) -> list[str]:
+        errs: list[str] = []
+        if not self.truenas_uri:
+            errs.append("TRUENAS_URI is required: ws(s)://<host>/api/current")
         if not self.truenas_api_key:
-            errors.append("TRUENAS_API_KEY environment variable is required. Generate one in TrueNAS (API Keys).")
+            errs.append("TRUENAS_API_KEY is required (TrueNAS API Keys)")
+        if self.truenas_uri and not self.truenas_verify_ssl and self.truenas_uri.startswith("wss://"):
+            errs.append("TRUENAS_VERIFY_SSL=false is not allowed over wss:// - use ws:// or leave verification on")
+        return errs
 
-        if errors:
-            raise ValueError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
-
-        self.truenas_base_url = base.rstrip("/")
-        return self
+    def validate(self) -> None:
+        errs = self._errors()
+        if errs:
+            raise ValueError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errs))
 
     def configure_logging(self) -> None:
         """Configure logging based on log level."""

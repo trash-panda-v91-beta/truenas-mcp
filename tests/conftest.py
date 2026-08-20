@@ -16,5 +16,5 @@ def pytest_collection_modifyitems(items):
 
 
 # Dummy values so suites collect without a .env; real shell/.env win via setdefault.
-os.environ.setdefault("TRUENAS_BASE_URL", "https://truenas.example.com")
+os.environ.setdefault("TRUENAS_URI", "wss://truenas.example.com/api/current")
 os.environ.setdefault("TRUENAS_API_KEY", "test-key")

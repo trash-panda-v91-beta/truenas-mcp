@@ -1,10 +1,11 @@
 # TrueNAS MCP
 
-An MCP server that turns your TrueNAS instance into tools. Manage disks, pools,
-apps, VMs, shares and more from any MCP client. Built with FastMCP.
+An MCP server that turns your TrueNAS (SCALE) instance into tools. Manage pools,
+disks, datasets, apps, VMs and more from any MCP client. Built on FastMCP and the
+official `truenas_api_client` websocket library.
 
-Authenticated with a TrueNAS API key. Tool list and API surface are being
-designed - see AGENTS.md for the current shape.
+Authenticated with a TrueNAS API key over a persistent websocket connection.
+Targets TrueNAS 25.10 (pin: `TS-25.10.3`).
 
 ## Run with Docker
 
@@ -12,7 +13,7 @@ You need a TrueNAS instance and an API key (Account Settings > API Keys).
 
 ```bash
 docker build -t truenas-mcp .
-docker run -e TRUENAS_BASE_URL=https://truenas.example.com \
+docker run -e TRUENAS_URI=wss://truenas.example.com/api/current \
   -e TRUENAS_API_KEY=your-key \
   truenas-mcp
 ```
@@ -21,12 +22,14 @@ docker run -e TRUENAS_BASE_URL=https://truenas.example.com \
 
 | name | default | notes |
 | ---- | ------- | ----- |
-| `TRUENAS_BASE_URL` | - | required, https only |
+| `TRUENAS_URI` | - | required, ws:// or wss:// websocket URL, e.g. `wss://host/api/current` |
 | `TRUENAS_API_KEY` | - | required, from TrueNAS API Keys |
+| `TRUENAS_VERIFY_SSL` | true | set false only over plain `ws://` (disable TLS verification for self-signed) |
 | `LOG_LEVEL` | INFO | |
-| `ALLOW_INSECURE_HTTP` | false | set true for plaintext http base URLs |
 
-Values can come from a `.env` file in the working directory.
+Values can come from a `.env` file in the working directory. API-key auth uses
+`auth.login_with_api_key` over the persistent connection (TrueNAS 25.10 SCRAM -
+no username needed).
 
 ## Serve over HTTP
 
@@ -50,7 +53,8 @@ FASTMCP_TRANSPORT=streamable-http FASTMCP_HOST=0.0.0.0 FASTMCP_PORT=8000 \
 
 ## Tools
 
-TBD - tool surface is under design.
+`system_info`, `list_pools`, `list_disks`, `list_datasets`, `list_apps`,
+`list_vms`, `truenas_call` (generic middleware escape hatch).
 
 ## License
 
