@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.5](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.4...v0.1.5) (2026-08-20)
+
+
+### Features
+
+* add read, app management, and storage create/manage tools ([#14](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/14)) ([e9eb9d2](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/e9eb9d2296b74d6f9d110e1e824c7e39bc37675f))
+
+
+### Bug Fixes
+
+* keep TrueNAS websocket alive (idle connections get closed) ([#11](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/11)) ([e2f40be](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/e2f40be6096a6220d5a43ad5477dd6377b622951))
+
+
+### Continuous Integration
+
+* add manual workflow_dispatch to publish container image ([#13](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/13)) ([7b3d70d](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/7b3d70d2ab77ce4fba53e09023d20948da43b52d))
+
 ## [0.1.4](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.3...v0.1.4) (2026-08-20)
 
 
