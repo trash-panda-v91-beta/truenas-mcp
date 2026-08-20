@@ -31,8 +31,6 @@ class Config(BaseSettings):
             raise ValueError("TRUENAS_URI is required: ws(s)://<host>/api/current")
         if not self.truenas_api_key:
             raise ValueError("TRUENAS_API_KEY is required (TrueNAS API Keys)")
-        if self.truenas_uri and not self.truenas_verify_ssl and self.truenas_uri.startswith("wss://"):
-            raise ValueError("TRUENAS_VERIFY_SSL=false is not allowed over wss:// - use ws:// or leave verification on")
         return self
 
     def configure_logging(self) -> None:
