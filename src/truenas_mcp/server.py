@@ -22,31 +22,31 @@ logger = logging.getLogger(__name__)
 @lifespan
 async def truenas_lifespan(server):
     """Open the TrueNAS connection on startup, close it on shutdown."""
-    state: dict = {}
+    global client
     try:
-        client = TrueNASClient()
-        await client.connect()
-        state["client"] = client
+        state = TrueNASClient()
+        await state.connect()
+        client = state
     except Exception as exc:  # noqa: BLE001 - surface as server startup failure
         logger.error("Failed to connect to TrueNAS: %s", exc)
-        state["client"] = None
-        state["connect_error"] = str(exc)
-    yield state
-    client = state.get("client")
+        client = None
+    yield None
     if client is not None:
         await client.close()
+        client = None
 
 
 mcp = FastMCP("truenas", lifespan=truenas_lifespan)
 
+# Shared client instance (opened in lifespan)
+client: TrueNASClient | None = None
 
-def get_client(ctx) -> TrueNASClient:
-    """Get the shared client from server state."""
-    state = ctx.request_context.lifespan_context
-    error = state.get("connect_error")
-    client = state.get("client")
+
+async def get_client() -> TrueNASClient:
+    """Get the shared TrueNAS client, raising if the server could not connect."""
+    global client
     if client is None:
-        raise RuntimeError(error or "TrueNAS connection unavailable")
+        raise RuntimeError("TrueNAS connection unavailable at startup - check TRUENAS_URI/API_KEY")
     return client
 
 
@@ -64,21 +64,22 @@ def _dump(data) -> str:
 
 
 @mcp.tool()
-async def system_info(ctx) -> str:
+async def system_info() -> str:
     """Get TrueNAS system information (version, hostname, uptime, CPU, memory).
 
     Returns:
         JSON string with system.info fields.
     """
     try:
-        info = await get_client(ctx).call("system.info")
+        c = await get_client()
+        info = await c.call("system.info")
         return _dump(info)
     except Exception as exc:  # noqa: BLE001
         return _error_text("system_info", exc)
 
 
 @mcp.tool()
-async def list_pools(ctx, name: str | None = None) -> str:
+async def list_pools(name: str | None = None) -> str:
     """List storage pools and their ZFS status (health, capacity, topology).
 
     Args:
@@ -86,14 +87,14 @@ async def list_pools(ctx, name: str | None = None) -> str:
     """
     try:
         flt = [["name", "=", name]] if name else []
-        pools = await get_client(ctx).call("pool.query", flt)
+        pools = await (await get_client()).call("pool.query", flt)
         return _dump(pools)
     except Exception as exc:  # noqa: BLE001
         return _error_text("list_pools", exc)
 
 
 @mcp.tool()
-async def list_disks(ctx, serial: str | None = None) -> str:
+async def list_disks(serial: str | None = None) -> str:
     """List disks and their health fields (model, serial, size, SMART status).
 
     Args:
@@ -101,14 +102,14 @@ async def list_disks(ctx, serial: str | None = None) -> str:
     """
     try:
         flt = [["serial", "=", serial]] if serial else []
-        disks = await get_client(ctx).call("disk.query", flt)
+        disks = await (await get_client()).call("disk.query", flt)
         return _dump(disks)
     except Exception as exc:  # noqa: BLE001
         return _error_text("list_disks", exc)
 
 
 @mcp.tool()
-async def list_datasets(ctx, path: str | None = None) -> str:
+async def list_datasets(path: str | None = None) -> str:
     """List ZFS datasets (name, mountpoint, used/available, quotas).
 
     Args:
@@ -116,27 +117,27 @@ async def list_datasets(ctx, path: str | None = None) -> str:
     """
     try:
         flt = [["name", "=", path]] if path else []
-        ds = await get_client(ctx).call("pool.dataset.query", flt)
+        ds = await (await get_client()).call("pool.dataset.query", flt)
         return _dump(ds)
     except Exception as exc:  # noqa: BLE001
         return _error_text("list_datasets", exc)
 
 
 @mcp.tool()
-async def list_apps(ctx) -> str:
+async def list_apps() -> str:
     """List installed applications (k3s apps) with state and version."""
     try:
-        apps = await get_client(ctx).call("app.query", [])
+        apps = await (await get_client()).call("app.query", [])
         return _dump(apps)
     except Exception as exc:  # noqa: BLE001
         return _error_text("list_apps", exc)
 
 
 @mcp.tool()
-async def list_vms(ctx) -> str:
+async def list_vms() -> str:
     """List virtual machines with their current status."""
     try:
-        vms = await get_client(ctx).call("vm.query", [])
+        vms = await (await get_client()).call("vm.query", [])
         return _dump(vms)
     except Exception as exc:  # noqa: BLE001
         return _error_text("list_vms", exc)
@@ -148,7 +149,7 @@ async def list_vms(ctx) -> str:
 
 
 @mcp.tool()
-async def truenas_call(ctx, method: str, params: list | None = None) -> str:
+async def truenas_call(method: str, params: list | None = None) -> str:
     """Call any TrueNAS middleware endpoint directly.
 
     Args:
@@ -159,7 +160,7 @@ async def truenas_call(ctx, method: str, params: list | None = None) -> str:
     """
     try:
         params = params or []
-        result = await get_client(ctx).call(method, *params)
+        result = await (await get_client()).call(method, *params)
         return _dump(result)
     except Exception as exc:  # noqa: BLE001
         return _error_text("truenas_call", exc)
