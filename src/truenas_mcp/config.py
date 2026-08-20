@@ -2,7 +2,7 @@
 
 import logging
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,27 +18,22 @@ class Config(BaseSettings):
 
     @field_validator("truenas_uri")
     @classmethod
-    def _validate_uri(cls, v: str | None) -> str | None:
+    def _normalise_uri(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        if v.startswith("wss://") or v.startswith("ws://"):
-            return v.rstrip("/")
-        raise ValueError("TRUENAS_URI must be a ws:// or wss:// websocket URL, e.g. wss://truenas/api/current")
+        if not (v.startswith("wss://") or v.startswith("ws://")):
+            raise ValueError("TRUENAS_URI must be a ws:// or wss:// websocket URL, e.g. wss://truenas/api/current")
+        return v.rstrip("/")
 
-    def _errors(self) -> list[str]:
-        errs: list[str] = []
+    @model_validator(mode="after")
+    def _check(self) -> Config:
         if not self.truenas_uri:
-            errs.append("TRUENAS_URI is required: ws(s)://<host>/api/current")
+            raise ValueError("TRUENAS_URI is required: ws(s)://<host>/api/current")
         if not self.truenas_api_key:
-            errs.append("TRUENAS_API_KEY is required (TrueNAS API Keys)")
+            raise ValueError("TRUENAS_API_KEY is required (TrueNAS API Keys)")
         if self.truenas_uri and not self.truenas_verify_ssl and self.truenas_uri.startswith("wss://"):
-            errs.append("TRUENAS_VERIFY_SSL=false is not allowed over wss:// - use ws:// or leave verification on")
-        return errs
-
-    def validate(self) -> None:
-        errs = self._errors()
-        if errs:
-            raise ValueError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errs))
+            raise ValueError("TRUENAS_VERIFY_SSL=false is not allowed over wss:// - use ws:// or leave verification on")
+        return self
 
     def configure_logging(self) -> None:
         """Configure logging based on log level."""

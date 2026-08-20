@@ -59,9 +59,12 @@ class TrueNASClient:
         """Call a middleware method, bridging the blocking client to the event loop."""
         if self._client is None:
             await self.connect()
+        client = self._client
+        if client is None:
+            raise RuntimeError("TrueNAS client is not connected")
         kwargs = {}
         if job:
             kwargs["job"] = True
         if timeout is not None:
             kwargs["timeout"] = timeout
-        return await asyncio.to_thread(self._client.call, method, *params, **kwargs)
+        return await asyncio.to_thread(client.call, method, *params, **kwargs)

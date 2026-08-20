@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @lifespan
 async def truenas_lifespan(server):
     """Open the TrueNAS connection on startup, close it on shutdown."""
-    state = {}
+    state: dict = {}
     try:
         client = TrueNASClient()
         await client.connect()
@@ -30,10 +30,11 @@ async def truenas_lifespan(server):
     except Exception as exc:  # noqa: BLE001 - surface as server startup failure
         logger.error("Failed to connect to TrueNAS: %s", exc)
         state["client"] = None
-        state["error"] = str(exc)
+        state["connect_error"] = str(exc)
     yield state
-    if state.get("client") is not None:
-        await state["client"].close()
+    client = state.get("client")
+    if client is not None:
+        await client.close()
 
 
 mcp = FastMCP("truenas", lifespan=truenas_lifespan)
@@ -42,9 +43,10 @@ mcp = FastMCP("truenas", lifespan=truenas_lifespan)
 def get_client(ctx) -> TrueNASClient:
     """Get the shared client from server state."""
     state = ctx.request_context.lifespan_context
+    error = state.get("connect_error")
     client = state.get("client")
     if client is None:
-        raise RuntimeError(state.get("error", "TrueNAS connection unavailable"))
+        raise RuntimeError(error or "TrueNAS connection unavailable")
     return client
 
 

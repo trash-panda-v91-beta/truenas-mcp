@@ -7,12 +7,12 @@ from truenas_mcp.config import Config
 
 def test_uri_required():
     with pytest.raises(ValueError, match="TRUENAS_URI"):
-        Config(truenas_api_key="key", truenas_uri=None).validate()
+        Config(truenas_api_key="key", truenas_uri=None)
 
 
 def test_api_key_required():
     with pytest.raises(ValueError, match="TRUENAS_API_KEY"):
-        Config(truenas_uri="ws://host/api/current", truenas_api_key=None).validate()
+        Config(truenas_uri="ws://host/api/current", truenas_api_key=None)
 
 
 def test_http_uri_rejected():
@@ -31,4 +31,4 @@ def test_wss_with_verify_false_rejected():
             truenas_uri="wss://truenas/api/current",
             truenas_api_key="key",
             truenas_verify_ssl=False,
-        ).validate()
+        )
