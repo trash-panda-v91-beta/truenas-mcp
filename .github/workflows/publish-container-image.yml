@@ -6,6 +6,7 @@ on:
   push:
     tags:
       - "v*" # tags created by release-please
+  workflow_dispatch: # manual build from the selected branch/ref (e.g. main)
 
 permissions:
   contents: read
@@ -99,8 +100,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/truenas-mcp
           tags: |
-            type=ref,event=tag
-            type=raw,value=latest
+            ${{ github.event_name == 'workflow_dispatch' && 'type=raw,value=dev' }}
+            ${{ github.event_name != 'workflow_dispatch' && 'type=ref,event=tag' }}
+            ${{ github.event_name != 'workflow_dispatch' && 'type=raw,value=latest' }}
 
       - name: Create and push manifest
         working-directory: /tmp/digests
