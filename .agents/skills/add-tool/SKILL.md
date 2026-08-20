@@ -15,26 +15,27 @@ and copy its shape - this is the source of truth, not this guide.
 
 ## 2. Client method - `src/truenas_mcp/client.py`
 
-Add a method to `TrueNASClient` and call it from the tool via `get_client()`. Use an `httpx` request
-against the TrueNAS REST API v2.0. Remember:
-- resource lists are GET `/api/v2.0/<resource>`; reads by name are `/id`; mutations use the
-  matching POST/PUT/DELETE with the resource name in the path
-- respect the rate limiter via the existing `request` method
+Add a method to `TrueNASClient` and call it from the tool via `get_client()`
+(the shared persistent websocket). Data reads are middleware `.query` methods:
+`call("<resource>.query", [[filters]])`. Empty list = all rows; a filter is a
+list like `[["name","=","tank"]]`. Long-running operations use `job=True`.
+Remember:
+- the library is synchronous - every `call` already bridges via
+  `asyncio.to_thread`, so your tool stays async and just awaits `client.call`
+- reuse the existing persistent connection, never open a new `Client`
+- camelCase field names in filter keys and payloads (TrueNAS JSON)
 
-## 3. Models - `src/truenas_mcp/models.py`
+## 3. Models - (rarely needed)
 
-Add Pydantic models for any request/response shapes. Use camelCase field names (TrueNAS JSON).
-Add validators for constraints (ranges, enums, formats) matching the existing pattern.
+For most tools the middleware already returns clean dicts; `_dump` serializes
+them. Only add Pydantic models when you need to reshape or validate a request
+payload. camelCase field names (TrueNAS JSON).
 
 ## 4. Tests - `tests/`
 
-Tests live in `tests/unit/` (mocked), `tests/integration/` (full mock workflows), `tests/live/`
-(real instance, marked skip_in_ci/live_api).
-
-- `tests/unit/test_client.py` - mock the httpx transport; assert the method hits the right
-  URL/method, sends the right fields, and parses the response
-- `tests/unit/test_mcp_tools.py` - mock the `TrueNASClient` and assert the tool returns the
-  right output for a given input
+Tests live in `tests/unit/`. For a tool, mock the `TrueNASClient.call` (or the
+`truenas_api_client.Client`) and assert the tool returns the right JSON for a
+given input.
 
 ## Verify
 

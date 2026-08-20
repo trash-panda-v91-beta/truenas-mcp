@@ -1,87 +1,70 @@
-"""TrueNAS API client with API-key auth, rate limiting, and retry.
+"""TrueNAS client via the official truenas_api_client websocket library.
 
-Authenticates with a TrueNAS API key sent in the `Authorization: Bearer`
-header against the REST API v2.0. Concrete endpoint methods (disks, pools,
-apps, VMs, ...) are added next - this shell wires up transport, auth header,
-and the token-bucket rate limiter shared by every tool.
+Opens ONE persistent websocket connection to the TrueNAS middleware (JSON-RPC
+over wss) and authenticates with an API key via auth.login_with_api_key.
+TrueNAS rate-limits auth attempts aggressively and recommends a persistent
+connection, so the client is opened once in the server lifespan and reused.
+
+The library is synchronous (blocking socket in a daemon thread), so every call
+is bridged to the async loop with asyncio.to_thread.
 """
 
 import asyncio
 import logging
-import random
-import time
+from typing import Any
 
-import httpx2 as httpx
+from truenas_api_client import Client
 
 from .config import config
 
 logger = logging.getLogger(__name__)
 
 
-class TokenBucket:
-    """Token bucket rate limiter."""
-
-    def __init__(self, rate: float, capacity: int):
-        self.rate = rate
-        self.capacity = capacity
-        self.tokens = float(capacity)
-        self.last_update = time.time()
-        self.lock = asyncio.Lock()
-
-    async def acquire(self, tokens: int = 1):
-        async with self.lock:
-            while True:
-                now = time.time()
-                elapsed = now - self.last_update
-                self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
-                self.last_update = now
-                if self.tokens >= tokens:
-                    self.tokens -= tokens
-                    return
-                wait_time = (tokens - self.tokens) / self.rate
-                await asyncio.sleep(wait_time)
-
-
 class TrueNASClient:
-    """Async client for the TrueNAS REST API v2.0 (API-key auth)."""
+    """Persistent websocket connection to TrueNAS middleware (API-key auth)."""
 
     def __init__(
         self,
-        base_url: str | None = None,
+        uri: str | None = None,
         api_key: str | None = None,
-        rate_limit_per_second: float | None = None,
-        rate_limit_burst: int | None = None,
-        timeout: float = 30.0,
+        verify_ssl: bool | None = None,
     ):
-        self.base_url = (base_url or config.truenas_base_url or "").rstrip("/")
+        self.uri = uri or config.truenas_uri or ""
         self.api_key = api_key or config.truenas_api_key
-        rate = rate_limit_per_second or 10.0
-        burst = rate_limit_burst or 10
-        self._bucket = TokenBucket(rate, burst)
-        self._client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=httpx.Timeout(timeout),
-        )
+        self.verify_ssl = config.truenas_verify_ssl if verify_ssl is None else verify_ssl
+        self._client: Client | None = None
+
+    async def connect(self) -> None:
+        """Open the websocket and authenticate. Idempotent."""
+        if self._client is not None:
+            return
+
+        def _open() -> Client:
+            c = Client(uri=self.uri, verify_ssl=self.verify_ssl)
+            if not c.call("auth.login_with_api_key", self.api_key):
+                raise RuntimeError("auth.login_with_api_key failed - check TRUENAS_API_KEY")
+            return c
+
+        self._client = await asyncio.to_thread(_open)
+        logger.info("Connected and authenticated to TrueNAS")
 
     async def close(self) -> None:
-        await self._client.aclose()
+        if self._client is None:
+            return
+        client = self._client
+        self._client = None
+        await asyncio.to_thread(client.close)
 
-    @staticmethod
-    def _headers() -> dict[str, str]:
-        return {"Accept": "application/json"}
-
-    async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
-        """Rate-limited request with one retry on transient failure."""
-        await self._bucket.acquire()
-        try:
-            resp = await self._client.request(method, path, headers=self._headers(), **kwargs)
-            resp.raise_for_status()
-            return resp
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code in (429, 502, 503, 504):
-                await asyncio.sleep(random.uniform(0.2, 0.8))
-                return await self._client.request(method, path, headers=self._headers(), **kwargs)
-            raise
-
-    # Concrete endpoint methods (disks, pools, apps, VMs, ...) land here.
+    async def call(self, method: str, *params: Any, job: bool = False, timeout: float | None = None) -> Any:
+        """Call a middleware method, bridging the blocking client to the event loop."""
+        if self._client is None:
+            await self.connect()
+        client = self._client
+        if client is None:
+            raise RuntimeError("TrueNAS client is not connected")
+        kwargs = {}
+        if job:
+            kwargs["job"] = True
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        return await asyncio.to_thread(client.call, method, *params, **kwargs)
