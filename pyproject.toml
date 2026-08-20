@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 authors = [{ name = "trash-panda-v91-beta", email = "42897550+trash-panda-v91-beta@users.noreply.github.com" }]
-keywords = ["truenas", "mcp"]
+keywords = ["mcp", "truenas"]
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
