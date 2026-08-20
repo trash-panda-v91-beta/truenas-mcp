@@ -25,10 +25,7 @@ def test_ws_uri_accepted():
     assert c.truenas_uri == "ws://truenas/api/current"
 
 
-def test_wss_with_verify_false_rejected():
-    with pytest.raises(ValueError, match="VERIFY_SSL"):
-        Config(
-            truenas_uri="wss://truenas/api/current",
-            truenas_api_key="key",
-            truenas_verify_ssl=False,
-        )
+def test_wss_with_verify_false_allowed():
+    # self-signed home TrueNAS behind wss needs verification off
+    c = Config(truenas_uri="wss://asc.internal/api/current", truenas_api_key="key", truenas_verify_ssl=False)
+    assert c.truenas_verify_ssl is False
