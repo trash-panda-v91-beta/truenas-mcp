@@ -149,6 +149,88 @@ async def list_vms() -> str:
 
 
 @mcp.tool()
+async def list_snapshots(dataset: str | None = None) -> str:
+    """List ZFS snapshots.
+
+    Args:
+        dataset: Restrict to snapshots of one dataset, e.g. tank/data (optional).
+    """
+    try:
+        flt = [["dataset", "=", dataset]] if dataset else []
+        snaps = await (await get_client()).call("pool.snapshot.query", flt)
+        return _dump(snaps)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("list_snapshots", exc)
+
+
+@mcp.tool()
+async def list_shares(kind: str = "smb") -> str:
+    """List SMB or NFS shares.
+
+    Args:
+        kind: "smb" or "nfs" (default smb).
+    """
+    try:
+        if kind == "nfs":
+            shares = await (await get_client()).call("sharing.nfs.query", [])
+        else:
+            shares = await (await get_client()).call("sharing.smb.query", [])
+        return _dump(shares)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("list_shares", exc)
+
+
+@mcp.tool()
+async def list_alerts() -> str:
+    """List TrueNAS system alerts."""
+    try:
+        alerts = await (await get_client()).call("alert.list")
+        return _dump(alerts)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("list_alerts", exc)
+
+
+@mcp.tool()
+async def get_scrub_status(pool_name: str | None = None) -> str:
+    """Get ZFS pool scrub status/schedules.
+
+    Args:
+        pool_name: Restrict to one pool by name (optional).
+    """
+    try:
+        flt = [["pool_name", "=", pool_name]] if pool_name else []
+        scrubs = await (await get_client()).call("pool.scrub.query", flt)
+        return _dump(scrubs)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("get_scrub_status", exc)
+
+
+@mcp.tool()
+async def list_boot_environments() -> str:
+    """List boot environments (active, activated, kernel/initramfs)."""
+    try:
+        bes = await (await get_client()).call("boot.environment.query", [])
+        return _dump(bes)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("list_boot_environments", exc)
+
+
+@mcp.tool()
+async def list_jobs(state: str | None = None) -> str:
+    """List middleware jobs (long-running operations).
+
+    Args:
+        state: Filter by job state, e.g. RUNNING, SUCCESS, FAILED (optional).
+    """
+    try:
+        flt = [["state", "=", state]] if state else []
+        jobs = await (await get_client()).call("core.get_jobs", flt)
+        return _dump(jobs)
+    except Exception as exc:  # noqa: BLE001
+        return _error_text("list_jobs", exc)
+
+
+@mcp.tool()
 async def truenas_call(method: str, params: list | None = None) -> str:
     """Call any TrueNAS middleware endpoint directly.
 
