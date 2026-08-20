@@ -5,8 +5,8 @@ name: "Publish Container Image"
 on:
   push:
     tags:
-      - "v*" # tags created by release-please
-  workflow_dispatch: # manual build from the selected branch/ref (e.g. main)
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
