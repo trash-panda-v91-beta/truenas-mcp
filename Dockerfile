@@ -4,6 +4,9 @@
 FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12@sha256:e85be844203885286c60ffad8a858d48afb6c5a5c237ca0e67f12e74b8f174b1 /uv /uvx /bin/
 
+# truenas_api_client is a git dependency - uv sync needs git to fetch it.
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
 # Use the image's system Python; don't pull dev/test deps into the image.
 ENV UV_PYTHON_DOWNLOADS=0 \
     UV_NO_DEV=1 \
