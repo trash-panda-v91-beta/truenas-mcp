@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v1.0.0...v1.0.1) (2026-10-20)
+
+
+### Continuous Integration
+
+* auto-approve routine dep bumps ([#34](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/34)) ([c4a3d14](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/c4a3d1419ebb7b2d155223b8de55f27a83db5e74))
+
 ## [1.0.0](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.5...v1.0.0) (2026-09-18)
 
 
