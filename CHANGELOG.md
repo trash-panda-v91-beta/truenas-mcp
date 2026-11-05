@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v1.0.0...v1.0.1) (2026-11-05)
+
+
+### Continuous Integration
+
+* auto-approve routine dep bumps ([#34](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/34)) ([c4a3d14](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/c4a3d1419ebb7b2d155223b8de55f27a83db5e74))
+* **github-action:** update renovatebot/github-action ( v46.3.1 ➔ v46.3.3 ) ([#28](https://github.com/trash-panda-v91-beta/truenas-mcp/issues/28)) ([1e93447](https://github.com/trash-panda-v91-beta/truenas-mcp/commit/1e93447882225fd63d6bc9b154edf817f97744bb))
+
 ## [1.0.0](https://github.com/trash-panda-v91-beta/truenas-mcp/compare/v0.1.5...v1.0.0) (2026-09-18)
 
 
